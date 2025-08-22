@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SentinelOS - Offline Command Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --online: #28a745;
+            --offline: #dc3545;
+            --alert: #ffc107;
+            --standby: #17a2b8;
+        }
+        
+        body {
+            background-color: #0c0e14;
+            color: #e9ecef;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .login-container {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0c0e14 0%, #1a1e2c 100%);
+        }
+        
+        .login-card {
+            background-color: #1a1e29;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            width: 400px;
+            padding: 2rem;
+        }
+        
+        .dashboard {
+            display: none;
+            height: 100vh;
+            padding: 0;
+        }
+        
+        .sidebar {
+            background-color: #151822;
+            height: 100vh;
+            padding: 0;
+            border-right: 1px solid #2a2f3d;
+        }
+        
+        .main-content {
+            padding: 20px;
+            overflow-y: auto;
+            height: 100vh;
+        }
+        
+        .status-card {
+            background-color: #1a1e29;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+            border-left: 4px solid var(--status-color);
+        }
+        
+        .status-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .status-online {
+            --status-color: var(--online);
+        }
+        
+        .status-offline {
+            --status-color: var(--offline);
+        }
+        
+        .status-alert {
+            --status-color: var(--alert);
+        }
+        
+        .status-standby {
+            --status-color: var(--standby);
+        }
+        
+        .status-indicator {
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .indicator-online {
+            background-color: var(--online);
+        }
+        
+        .indicator-offline {
+            background-color: var(--offline);
+        }
+        
+        .indicator-alert {
+            background-color: var(--alert);
+        }
+        
+        .indicator-standby {
+            background-color: var(--standby);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #4e7ae7;
+        }
+        
+        .command-console {
+            background-color: #1a1e29;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .audit-log {
+            background-color: #1a1e29;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .log-entry {
+            border-left: 3px solid #4e7ae7;
+            padding-left: 10px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .unit-card {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .unit-card.selected {
+            box-shadow: 0 0 0 2px #4e7ae7;
+        }
+        
+        .system-status {
+            background: linear-gradient(135deg, #1a1e29 0%, #232838 100%);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .clock {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #4e7ae7;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="text-center mb-4">
+                <h1 class="text-primary"><i class="bi bi-shield-lock"></i> SentinelOS</h1>
+                <p class="text-muted">Offline Command Dashboard</p>
+            </div>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control bg-dark text-light" id="username" placeholder="Enter your username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control bg-dark text-light" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Access Dashboard</button>
+            </form>
+            <div class="text-center mt-3">
+                <p class="text-muted">v1.0 | Local Network Only</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard">
+        <div class="sidebar">
+            <div class="p-3 border-bottom border-secondary">
+                <h4 class="navbar-brand"><i class="bi bi-shield-lock"></i> SentinelOS</h4>
+            </div>
+            <div class="p-3">
+                <div class="system-status">
+                    <h6>System Status</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Network:</span>
+                        <span class="badge bg-success">Secure</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Connection:</span>
+                        <span class="badge bg-success">Local</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Users Online:</span>
+                        <span class="badge bg-primary">1</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Quick Actions</h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="simulateAlert()">
+                            <i class="bi bi-exclamation-triangle"></i> Simulate Alert
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="resetAllStatus()">
+                            <i class="bi bi-arrow-clockwise"></i> Reset Status
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Active Units</h6>
+                    <div id="unitList" class="list-group">
+                        <!-- Units will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>Command Dashboard</h3>
+                <div class="d-flex align-items-center">
+                    <div class="clock me-3" id="currentTime">00:00:00</div>
+                    <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <h4>Unit Status</h4>
+                    <div class="row" id="unitGrid">
+                        <!-- Unit cards will be populated here -->
+                    </div>
+                    
+                    <div class="command-console">
+                        <h4>Command Console</h4>
+                        <div class="mb-3">
+                            <label class="form-label">Selected Unit: <span id="selectedUnit">None</span></label>
+                            <select class="form-select bg-dark text-light" id="commandSelect">
+                                <option value="">Select a command...</option>
+                                <option value="REQUEST_STATUS">REQUEST_STATUS</option>
+                                <option value="GO_TO_STATION_B">GO_TO_STATION_B</option>
+                                <option value="REPORT_IN">REPORT_IN</option>
+                                <option value="ACTIVATE_SENSORS">ACTIVATE_SENSORS</option>
+                                <option value="GO_OFFLINE">GO_OFFLINE</option>
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-primary" onclick="sendCommand()" id="sendCommandBtn" disabled>
+                                <i class="bi bi-send"></i> Send Command
+                            </button>
+                        </div>
+                        <div class="mt-3 alert alert-info" id="commandFeedback" style="display: none;">
+                            <!-- Command feedback will appear here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <h4>Audit Log</h4>
+                    <div class="audit-log">
+                        <div id="auditLogEntries">
+                            <!-- Log entries will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h4>System Overview</h4>
+                        <div class="card bg-dark">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Online Units:</span>
+                                    <span class="badge bg-success" id="onlineCount">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Units in Alert:</span>
+                                    <span class="badge bg-warning" id="alertCount">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Offline Units:</span>
+                                    <span class="badge bg-danger" id="offlineCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock database for demonstration purposes
+        const mockDatabase = {
+            users: [
+                { id: 1, username: "admin", password: "password", name: "System Administrator" },
+                { id: 2, username: "operator", password: "secure123", name: "Operator One" }
+            ],
+            units: [
+                { id: 1, name: "Patrol 1", status: "online", lastUpdated: new Date() },
+                { id: 2, name: "Checkpoint Alpha", status: "online", lastUpdated: new Date() },
+                { id: 3, name: "Sensor Net SW", status: "standby", lastUpdated: new Date() },
+                { id: 4, name: "Drone Unit 7", status: "offline", lastUpdated: new Date() },
+                { id: 5, name: "Command Center", status: "online", lastUpdated: new Date() },
+                { id: 6, name: "Perimeter Defense", status: "alert", lastUpdated: new Date() }
+            ],
+            logs: [
+                { id: 1, timestamp: new Date(), user: "System", action: "System initialized" },
+                { id: 2, timestamp: new Date(), user: "System", action: "All units connected" }
+            ]
+        };
+
+        // Current user session
+        let currentUser = null;
+        let selectedUnitId = null;
+
+        // Initialize the application
+        function initApp() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Check if user is already logged in (for demo purposes)
+            const savedUser = localStorage.getItem('sentinelos_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            }
+            
+            // Populate unit lists
+            renderUnitList();
+            renderUnitGrid();
+            updateStatusCounts();
+            renderAuditLog();
+            
+            // Start simulating real-time updates
+            setInterval(simulateRealTimeUpdates, 10000);
+        }
+
+        // Update the clock
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            document.getElementById('currentTime').textContent = timeStr;
+        }
+
+        // Handle login
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Check credentials against mock database
+            const user = mockDatabase.users.find(u => u.username === username && u.password === password);
+            
+            if (user) {
+                currentUser = user;
+                // Store user in localStorage for demo purposes
+                localStorage.setItem('sentinelos_user', JSON.stringify(user));
+                
+                // Add to audit log
+                addToAuditLog(`User ${user.name} logged in`);
+                
+                showDashboard();
+            } else {
+                alert('Invalid credentials. Try admin/password or operator/secure123');
+            }
+        });
+
+        // Show dashboard
+        function showDashboard() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'flex';
+        }
+
+        // Logout
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('sentinelos_user');
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+        }
+
+        // Render unit list in sidebar
+        function renderUnitList() {
+            const unitList = document.getElementById('unitList');
+            unitList.innerHTML = '';
+            
+            mockDatabase.units.forEach(unit => {
+                const statusClass = getStatusClass(unit.status);
+                const item = document.createElement('div');
+                item.className = `list-group-item list-group-item-action bg-dark text-light d-flex justify-content-between align-items-center`;
+                item.innerHTML = `
+                    <div>
+                        <span class="status-indicator ${statusClass}"></span>
+                        ${unit.name}
+                    </div>
+                    <span class="badge ${getStatusBadgeClass(unit.status)}">${unit.status}</span>
+                `;
+                item.addEventListener('click', () => selectUnit(unit.id));
+                unitList.appendChild(item);
+            });
+        }
+
+        // Render unit grid in main content
+        function renderUnitGrid() {
+            const unitGrid = document.getElementById('unitGrid');
+            unitGrid.innerHTML = '';
+            
+            mockDatabase.units.forEach(unit => {
+                const statusClass = getStatusClass(unit.status);
+                const lastUpdated = unit.lastUpdated.toLocaleTimeString();
+                
+                const col = document.createElement('div');
+                col.className = 'col-md-4 mb-3';
+                col.innerHTML = `
+                    <div class="status-card status-${unit.status} unit-card" data-unit-id="${unit.id}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>${unit.name}</h5>
+                            <span class="status-indicator ${statusClass}"></span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge ${getStatusBadgeClass(unit.status)}">${unit.status.toUpperCase()}</span>
+                        </div>
+                        <div class="mt-2 text-muted small">
+                            Last updated: ${lastUpdated}
+                        </div>
+                    </div>
+                `;
+                
+                col.querySelector('.unit-card').addEventListener('click', () => selectUnit(unit.id));
+                unitGrid.appendChild(col);
+            });
+        }
+
+        // Get CSS class for status indicator
+        function getStatusClass(status) {
+            switch(status) {
+                case 'online': return 'indicator-online';
+                case 'offline': return 'indicator-offline';
+                case 'alert': return 'indicator-alert';
+                case 'standby': return 'indicator-standby';
+                default: return '';
+            }
+        }
+
+        // Get Bootstrap badge class for status
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'online': return 'bg-success';
+                case 'offline': return 'bg-danger';
+                case 'alert': return 'bg-warning';
+                case 'standby': return 'bg-info';
+                default: return 'bg-secondary';
+            }
+        }
+
+        // Select a unit
+        function selectUnit(unitId) {
+            selectedUnitId = unitId;
+            
+            // Update UI to show selected unit
+            document.querySelectorAll('.unit-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            document.querySelector(`.unit-card[data-unit-id="${unitId}"]`).classList.add('selected');
+            
+            // Update selected unit text
+            const unit = mockDatabase.units.find(u => u.id === unitId);
+            document.getElementById('selectedUnit').textContent = unit.name;
+            
+            // Enable send command button
+            document.getElementById('sendCommandBtn').disabled = false;
+        }
+
+        // Send command to selected unit
+        function sendCommand() {
+            if (!selectedUnitId) {
+                alert('Please select a unit first');
+                return;
+            }
+            
+            const commandSelect = document.getElementById('commandSelect');
+            const command = commandSelect.value;
+            
+            if (!command) {
+                alert('Please select a command');
+                return;
+            }
+            
+            const unit = mockDatabase.units.find(u => u.id === selectedUnitId);
+            
+            // Show command feedback
+            const feedback = document.getElementById('commandFeedback');
+            feedback.style.display = 'block';
+     
