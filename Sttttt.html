@@ -515,4 +515,116 @@
             // Show command feedback
             const feedback = document.getElementById('commandFeedback');
             feedback.style.display = 'block';
-     
+            feedback.innerHTML = `Command <strong>${command}</strong> sent to <strong>${unit.name}</strong>`;
+            
+            // Add to audit log
+            addToAuditLog(`User ${currentUser.name} sent command ${command} to ${unit.name}`);
+            
+            // Reset command select
+            commandSelect.value = '';
+        }
+
+        // Add entry to audit log
+        function addToAuditLog(action) {
+            const timestamp = new Date();
+            mockDatabase.logs.unshift({
+                id: mockDatabase.logs.length + 1,
+                timestamp,
+                user: currentUser ? currentUser.name : 'System',
+                action
+            });
+            
+            // Keep only the last 50 log entries
+            if (mockDatabase.logs.length > 50) {
+                mockDatabase.logs.pop();
+            }
+            
+            renderAuditLog();
+        }
+
+        // Render audit log
+        function renderAuditLog() {
+            const logContainer = document.getElementById('auditLogEntries');
+            logContainer.innerHTML = '';
+            
+            mockDatabase.logs.forEach(log => {
+                const timeStr = log.timestamp.toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.innerHTML = `<small>[${timeStr}] ${log.user}: ${log.action}</small>`;
+                logContainer.appendChild(entry);
+            });
+        }
+
+        // Update status counts
+        function updateStatusCounts() {
+            const onlineCount = mockDatabase.units.filter(u => u.status === 'online').length;
+            const alertCount = mockDatabase.units.filter(u => u.status === 'alert').length;
+            const offlineCount = mockDatabase.units.filter(u => u.status === 'offline').length;
+            
+            document.getElementById('onlineCount').textContent = onlineCount;
+            document.getElementById('alertCount').textContent = alertCount;
+            document.getElementById('offlineCount').textContent = offlineCount;
+        }
+
+        // Simulate real-time updates
+        function simulateRealTimeUpdates() {
+            // Randomly change the status of a unit
+            const randomIndex = Math.floor(Math.random() * mockDatabase.units.length);
+            const statuses = ['online', 'offline', 'alert', 'standby'];
+            const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
+            
+            mockDatabase.units[randomIndex].status = newStatus;
+            mockDatabase.units[randomIndex].lastUpdated = new Date();
+            
+            // Add to audit log if status changed to alert
+            if (newStatus === 'alert') {
+                addToAuditLog(`Unit ${mockDatabase.units[randomIndex].name} reported an alert status`);
+            }
+            
+            // Update UI
+            renderUnitList();
+            renderUnitGrid();
+            updateStatusCounts();
+        }
+
+        // Simulate an alert
+        function simulateAlert() {
+            // Find a unit that's not already in alert status
+            const nonAlertUnits = mockDatabase.units.filter(u => u.status !== 'alert');
+            if (nonAlertUnits.length > 0) {
+                const randomUnit = nonAlertUnits[Math.floor(Math.random() * nonAlertUnits.length)];
+                randomUnit.status = 'alert';
+                randomUnit.lastUpdated = new Date();
+                
+                // Add to audit log
+                addToAuditLog(`Simulated alert triggered for ${randomUnit.name}`);
+                
+                // Update UI
+                renderUnitList();
+                renderUnitGrid();
+                updateStatusCounts();
+            }
+        }
+
+        // Reset all statuses to online
+        function resetAllStatus() {
+            mockDatabase.units.forEach(unit => {
+                unit.status = 'online';
+                unit.lastUpdated = new Date();
+            });
+            
+            // Add to audit log
+            addToAuditLog(`User ${currentUser.name} reset all unit statuses`);
+            
+            // Update UI
+            renderUnitList();
+            renderUnitGrid();
+            updateStatusCounts();
+        }
+
+        // Initialize the app when the page loads
+        window.onload = initApp;
+    </script>
+</body>
+</html>
